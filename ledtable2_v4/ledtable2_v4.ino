@@ -23,7 +23,7 @@
 #define FAST_LED_DATA_PIN  7
 #define FAST_LED_CLOCK_PIN 6
 
-#ifdef USE_OCTOWS2811 && USE_FAST_LED
+#if defined(USE_OCTOWS2811) && defined(USE_FAST_LED)
 #error "Only one of USE_OCTOWS2811 and USE_FAST_LED can be defined"
 #endif
 
