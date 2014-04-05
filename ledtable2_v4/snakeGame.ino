@@ -95,7 +95,7 @@ void runSnake(){
       setTablePixel(xs[i], ys[i], WHITE);
     }
     
-    leds.show();
+    showPixels();
     #ifdef USE_CONSOLE_OUTPUT
     outputTableToConsole();
     #endif

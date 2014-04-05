@@ -16,7 +16,7 @@ void initStars(){
 void runStars(){
   initStars();
   clearTablePixels();
-  leds.show();
+  showPixels();
   
   unsigned long prevStarsCreationTime = 0;
   unsigned long prevUpdateTime = 0;
@@ -34,19 +34,19 @@ void runStars(){
         //Generate random positions until valid
         while (!positionOk){
           n = random(FIELD_WIDTH*FIELD_HEIGHT);
-          if (leds.getPixel(n) == 0)
+          if (getPixel(n) == 0)
             positionOk = true;
         }
 //        //Get random color
 //        if (random(2)==0)
 //          leds.setPixel(n,YELLOW);
 //        else
-          leds.setPixel(n,WHITE);
+          setPixel(n,WHITE);
       }
       prevStarsCreationTime = curTime;
     }
     
-    leds.show();
+    showPixels();
     
     //Check input keys
     do{
