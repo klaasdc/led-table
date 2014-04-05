@@ -43,7 +43,7 @@ void runRainbow(){
 void rainbow(int phaseShift, int cycleTime){
   int color, x, y, offset, wait;
 
-  wait = cycleTime * 1000 / ledsPerStrip;
+  wait = cycleTime * 1000 / NUM_PIXELS;
   for (color=0; color < 180; color++) {
     for (x=0; x < FIELD_WIDTH; x++) {
       for (y=0; y < FIELD_HEIGHT; y++) {
@@ -51,7 +51,7 @@ void rainbow(int phaseShift, int cycleTime){
         setTablePixel(x, y, rainbowColors[index]);
       }
     }
-    leds.show();
+    showPixels();
     Serial.println("OK");
     //Read buttons
 

@@ -12,6 +12,28 @@
 #define  FIELD_HEIGHT      12
 #define  ORIENTATION_HORIZONTAL //Rotation of table, uncomment to rotate field 90 degrees
 
+//#define USE_OCTOWS2811 // Select either OCTOWS2811 or
+#define USE_FAST_LED   // FAST_LED as library to control the LED strips
+
+/*
+ * Some defines used by the FAST_LED library
+ */
+#define FAST_LED_CHIPSET WS2801
+#define FAST_LED_CHIPSET_WITH_CLOCK  // Comment if you use a chipset without clock
+#define FAST_LED_DATA_PIN  7
+#define FAST_LED_CLOCK_PIN 6
+
+#ifdef USE_OCTOWS2811 && USE_FAST_LED
+#error "Only one of USE_OCTOWS2811 and USE_FAST_LED can be defined"
+#endif
+
+#define  NUM_PIXELS    FIELD_WIDTH*FIELD_HEIGHT
+
+/*
+ * Define to disable the USB Input
+ */
+//#define DISABLE_USB
+
 //#define USE_CONSOLE_OUTPUT //Uncomment if you want to be able to display the led array on the serial console (for debugging)
 //#define USE_CONSOLE_INPUT //Uncomment if you want to be able to play the game from the console
 
@@ -20,14 +42,6 @@
 #include <spi4teensy3.h>
 USB Usb;
 XBOXUSB Xbox(&Usb);
-
-//OctoWS2811 instance
-#include <OctoWS2811.h>
-const int ledsPerStrip = FIELD_HEIGHT*2;
-DMAMEM int displayMemory[ledsPerStrip*6];
-int drawingMemory[ledsPerStrip*6];
-const int config = WS2811_GRB | WS2811_800kHz;
-OctoWS2811 leds(ledsPerStrip, displayMemory, drawingMemory, config);
 
 //Timer that periodically calls Usb.Task()
 IntervalTimer usbTaskTimer;
@@ -158,14 +172,78 @@ void clearTablePixelsConsole(){
 //  #endif
 //#endif
 
+/*
+ * OCTOWS2811 implementation 
+ */
+#ifdef USE_OCTOWS2811
+
+//OctoWS2811 instance
+#include <OctoWS2811.h>
+
+const int ledsPerStrip = FIELD_HEIGHT*2;
+DMAMEM int displayMemory[ledsPerStrip*6];
+int drawingMemory[ledsPerStrip*6];
+const int config = WS2811_GRB | WS2811_800kHz;
+OctoWS2811 leds(ledsPerStrip, displayMemory, drawingMemory, config);
+
+void initPixels(){
+  leds.begin();
+}
+
+void setPixel(int n, int color){
+  leds.setPixel(n, color);  
+}
+
+int getPixel(int n){
+  return leds.getPixel(n);  
+}
+
+void showPixels(){
+  leds.show(); 
+}
+
+#endif
+
+/*
+ * FAST_LED implementation 
+ */
+#ifdef USE_FAST_LED
+
+#include "FastLED.h"
+
+CRGB leds[NUM_PIXELS];
+
+void initPixels(){
+#ifdef FAST_LED_CHIPSET_WITH_CLOCK
+  FastLED.addLeds<FAST_LED_CHIPSET, FAST_LED_DATA_PIN, FAST_LED_CLOCK_PIN, RGB>(leds, NUM_PIXELS);
+#else
+  FastLED.addLeds<FAST_LED_CHIPSET, FAST_LED_DATA_PIN, RGB>(leds, NUM_PIXELS);
+#endif
+}
+
+void setPixel(int n, int color){
+  leds[n] = CRGB(color);
+}
+
+int getPixel(int n){
+  return (leds[n].r << 16) + (leds[n].g << 8) + leds[n].b;  
+}
+
+void showPixels(){
+  FastLED.show();
+}
+
+#endif
+
+
 void setTablePixel(int x, int y, int color){
   #ifdef ORIENTATION_HORIZONTAL
-  leds.setPixel(y%2 ? y*FIELD_WIDTH + x : y*FIELD_WIDTH + ((FIELD_HEIGHT-1)-x),color);
+  setPixel(y%2 ? y*FIELD_WIDTH + x : y*FIELD_WIDTH + ((FIELD_HEIGHT-1)-x),color);
     #ifdef USE_CONSOLE_OUTPUT
       setTablePixelConsole(y,x,color);
     #endif
   #else
-  leds.setPixel(x%2 ? x*FIELD_WIDTH + ((FIELD_HEIGHT-1)-y) : x*FIELD_WIDTH + y,color);
+  setPixel(x%2 ? x*FIELD_WIDTH + ((FIELD_HEIGHT-1)-y) : x*FIELD_WIDTH + y,color);
     #ifdef USE_CONSOLE_OUTPUT
       setTablePixelConsole(x,y,color);
     #endif
@@ -174,7 +252,7 @@ void setTablePixel(int x, int y, int color){
 
 void clearTablePixels(){
   for (int n=0; n<FIELD_WIDTH*FIELD_HEIGHT; n++){
-    leds.setPixel(n,0);
+    setPixel(n,0);
   }
 }
 
@@ -205,7 +283,7 @@ void printText(char* text, unsigned int textLength, int xoffset, int yoffset, in
     }
   }
   
-  leds.show();
+  showPixels();
   #ifdef USE_CONSOLE_OUTPUT
   outputTableToConsole();
   #endif
@@ -244,7 +322,7 @@ void fadeOut(){
       //Fade out by dimming all pixels
       for (int i=0; i<100; i++){
         dimLeds(0.97);
-        leds.show();
+        showPixels();
         delay(10);
       }
       break;
@@ -263,13 +341,13 @@ void fadeOut(){
           }
           curColumn++;
         }
-        leds.show();
+        showPixels();
         delay(5);
       }
       //Sweep complete, keep dimming leds for short time
       for (int i=0; i<100; i++){
         dimLeds(0.9);
-        leds.show();
+        showPixels();
         delay(5);
       }
       break;
@@ -280,7 +358,7 @@ void fadeOut(){
 void dimLeds(float factor){
   //Reduce brightness of all LEDs, typical factor is 0.97
   for (int n=0; n<(FIELD_WIDTH*FIELD_HEIGHT); n++){
-    int curColor = leds.getPixel(n);
+    int curColor = getPixel(n);
     //Derive the tree colors
     int r = ((curColor & 0xFF0000)>>16);
     int g = ((curColor & 0x00FF00)>>8);
@@ -292,7 +370,7 @@ void dimLeds(float factor){
     //Pack into single variable again
     curColor = (r<<16) + (g<<8) + b;
     //Set led again
-    leds.setPixel(n,curColor);
+    setPixel(n,curColor);
   }
 }
 
@@ -305,9 +383,10 @@ void setup(){
   #endif
 
   //Initialise display
-  leds.begin();
-  leds.show();
+  initPixels();
+  showPixels();
 
+#ifdef DISABLE_USB
   //Init USB
   if (Usb.Init() == -1) {
     Serial.print(F("\r\nOSC did not start"));
@@ -316,6 +395,7 @@ void setup(){
   
   //Init interrupt that calls Usb.task every 10 milliseconds
   usbTaskTimer.begin(UsbTask,10000);
+#endif
 
   //Init random number generator
   randomSeed(millis());

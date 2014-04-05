@@ -114,7 +114,7 @@ void printField(){
       }
     }
   }
-  leds.show();
+  showPixels();
   #ifdef USE_CONSOLE_OUTPUT
   outputTableToConsole();
   #endif

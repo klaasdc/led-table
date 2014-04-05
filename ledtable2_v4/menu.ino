@@ -43,7 +43,7 @@ void mainLoop(void){
     boolean runSelection = false;
     //Scroll current selection text from right to left;
     for (int x=FIELD_WIDTH; x>-(curSelectionTextLength*8); x--){
-      printText(curSelectionText, curSelectionTextLength, x, 2, RED);
+      printText(curSelectionText, curSelectionTextLength, x, (FIELD_HEIGHT-8)/2, RED);
       //Read buttons
       unsigned long curTime;
       do{
